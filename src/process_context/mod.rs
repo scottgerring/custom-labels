@@ -1,11 +1,9 @@
 mod encoding;
 mod model;
-mod reader;
 mod writer;
 
 // Re-export main types for convenience
 pub use model::{Error, KeyValue, ProcessContext, Result, Value};
-pub use reader::{read_process_context, read_process_context_from_pid};
 pub use writer::ProcessContextWriter;
 
 #[cfg(test)]

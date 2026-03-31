@@ -10,7 +10,6 @@
 //!
 //! For process-level context sharing (OTEP 4719), see the [`process_context`] module.
 
-pub mod reader;
 pub mod writer;
 pub mod process_context;
 pub mod process_context_ext;
