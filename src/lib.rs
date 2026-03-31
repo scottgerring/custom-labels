@@ -12,6 +12,8 @@
 
 pub mod reader;
 pub mod writer;
+pub mod process_context;
+pub mod process_context_ext;
 mod error;
 
 /// A key handle representing an index into the external key table.
