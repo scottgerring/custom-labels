@@ -194,6 +194,7 @@ unsafe fn ts_atomic(header: *mut MappingHeader) -> &'static AtomicU64 {
 /// The mapping stays writable to support in-place updates via `update()`.
 ///
 /// All operations are thread-safe via an internal global mutex.
+#[cfg(target_os = "linux")]
 pub struct ProcessContextWriter {
     _private: (),
 }

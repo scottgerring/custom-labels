@@ -165,6 +165,95 @@ pub fn release_context(ctx_key_id: &[u8; 8]) {
     // no-op!
 }
 
+/// Update the currently attached record in-place.
+///
+/// Unlike `set_current_record`, this does NOT null the TLS pointer during the
+/// update. Instead it briefly sets `valid = 0`, applies the changes via the
+/// closure, then sets `valid = 1`. A profiler sampling during the update window
+/// will see the pointer but skip the record (valid=0), rather than seeing no
+/// context at all.
+///
+/// If no record is currently attached, this allocates a new one and attaches it.
+pub fn update_current_record<F>(f: F)
+where
+    F: FnOnce(&mut RecordUpdater),
+{
+    use std::sync::atomic::{compiler_fence, AtomicU8, Ordering};
+
+    let current = unsafe { sys::custom_labels_get_current_record() };
+
+    if current.is_null() {
+        // No record attached — fall back to allocate + attach
+        let mut builder = RecordBuilder::new();
+        let mut updater = RecordUpdater { raw: builder.raw };
+        f(&mut updater);
+        let record = builder.build();
+        let new_ptr = record.into_raw();
+        unsafe { sys::custom_labels_set_current_record(new_ptr) };
+        return;
+    }
+
+    // In-place update: valid=0, fence, mutate, fence, valid=1
+    unsafe {
+        let valid_ptr = std::ptr::addr_of_mut!((*current).valid);
+        let valid = AtomicU8::from_ptr(valid_ptr);
+        valid.store(0, Ordering::Relaxed);
+        compiler_fence(Ordering::SeqCst);
+
+        // Reset attrs so the closure builds fresh
+        (*current).attrs_data_size = 0;
+
+        let mut updater = RecordUpdater { raw: NonNull::new_unchecked(current) };
+        f(&mut updater);
+
+        compiler_fence(Ordering::SeqCst);
+        valid.store(1, Ordering::Relaxed);
+    }
+}
+
+/// Handle for mutating a record during `update_current_record`.
+pub struct RecordUpdater {
+    raw: NonNull<sys::custom_labels_tl_record_t>,
+}
+
+impl RecordUpdater {
+    pub fn set_trace(&mut self, trace_id: &[u8; 16], span_id: &[u8; 8]) -> &mut Self {
+        unsafe {
+            sys::custom_labels_record_set_trace(
+                self.raw.as_ptr(),
+                trace_id.as_ptr(),
+                span_id.as_ptr(),
+            )
+        }
+        self
+    }
+
+    pub fn set_attr(&mut self, key: KeyHandle, value: &[u8]) -> Result<&mut Self> {
+        if value.len() > u8::MAX as usize {
+            return Err(Error::ValueTooLong(value.len()));
+        }
+
+        let result = unsafe {
+            sys::custom_labels_record_set_attr(
+                self.raw.as_ptr(),
+                key.0,
+                value.as_ptr() as *const _,
+                value.len() as u8,
+            )
+        };
+
+        if result < 0 {
+            Err(Error::SetAttribute)
+        } else {
+            Ok(self)
+        }
+    }
+
+    pub fn set_attr_str(&mut self, key: KeyHandle, value: &str) -> Result<&mut Self> {
+        self.set_attr(key, value.as_bytes())
+    }
+}
+
 /// Get the current TL record pointer (if any).
 pub fn get_current_record() -> Option<*mut sys::custom_labels_tl_record_t> {
     let ptr = unsafe { sys::custom_labels_get_current_record() };

@@ -1,4 +1,5 @@
 /target
+.idea
 Cargo.lock
 libcustomlabels.so
 node_modules/
