@@ -254,21 +254,6 @@ impl RecordUpdater {
     }
 }
 
-/// Get the current TL record pointer (if any).
-pub fn get_current_record() -> Option<*mut sys::custom_labels_tl_record_t> {
-    let ptr = unsafe { sys::custom_labels_get_current_record() };
-    if ptr.is_null() {
-        None
-    } else {
-        Some(ptr)
-    }
-}
-
-/// Debug helper: get the address of the TLS variable itself (not its value).
-pub fn get_tls_address() -> *const () {
-    unsafe { sys::custom_labels_get_tls_address() as *const () }
-}
-
 /// Execute a function with the given record as the active record.
 pub fn with_record<F, R>(record: Record, f: F) -> R
 where

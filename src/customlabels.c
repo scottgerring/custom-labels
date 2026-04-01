@@ -5,7 +5,7 @@
 
 // Compiler-only fence: prevents the compiler from reordering stores/loads
 // across this point. No hardware barrier is needed because readers are
-// signal handlers on the same CPU (the thread is stopped while reading).
+// expected to be signal handlers on the same CPU - (the thread is stopped while reading).
 #define BARRIER asm volatile("": : :"memory")
 
 // Process-global max record size, set via setup()

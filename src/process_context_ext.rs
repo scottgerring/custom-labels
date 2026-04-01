@@ -1,50 +1,11 @@
 //! Thread-Local Storage (TLS) context extension for ProcessContext.
 //!
 //! This module provides extension methods for configuring thread-local
-//! context sharing metadata in the process context.
+//! context sharing metadata in the process context. It is effectively
+//! TLS context specific extensions to the process_context mechanism.
 
 use crate::process_context::{ProcessContext, Value};
 use tracing::info;
-
-/// Parsed TLS configuration from a ProcessContext.
-#[derive(Debug, Clone)]
-pub struct TlsConfig {
-    /// Key table mapping indices to attribute names.
-    pub key_table: Vec<String>,
-}
-
-impl TlsConfig {
-    /// Parse TLS configuration from a ProcessContext.
-    ///
-    /// Returns `None` if the required threadlocal.* resources are not present.
-    pub fn from_process_context(ctx: &ProcessContext) -> Option<Self> {
-        // Validate schema version matches what we understand
-        let schema_version = ctx
-            .extra_attributes
-            .iter()
-            .find(|r| r.key == THREADLOCAL_SCHEMA_VERSION)
-            .and_then(|r| r.value.as_str())?;
-
-        if schema_version != SCHEMA_VERSION {
-            return None;
-        }
-
-        // Extract key table from array value (position = index) from extra_attributes
-        let key_map_array = ctx
-            .extra_attributes
-            .iter()
-            .find(|r| r.key == THREADLOCAL_ATTRIBUTE_KEY_MAP)
-            .and_then(|r| r.value.as_array())?;
-
-        // Parse array into key table: position in array IS the index
-        let key_table: Vec<String> = key_map_array
-            .iter()
-            .filter_map(|v| v.as_str().map(|s| s.to_string()))
-            .collect();
-
-        Some(TlsConfig { key_table })
-    }
-}
 
 /// Resource key for the TLS schema version (contains both type and version).
 pub const THREADLOCAL_SCHEMA_VERSION: &str = "threadlocal.schema_version";
