@@ -19,6 +19,7 @@ fn main() {
     let bindings = bindgen::Builder::default()
         .header("src/customlabels.h")
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
+        .clang_arg("-D__bindgen")
         .generate()
         .expect("Unable to generate bindings");
     bindings

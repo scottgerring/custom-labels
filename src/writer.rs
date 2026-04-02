@@ -1,8 +1,18 @@
 use std::ptr::NonNull;
+use std::sync::atomic::{AtomicPtr, compiler_fence, Ordering};
 
 use super::{sys, KeyHandle};
 use tracing::info;
 use crate::error::{Error, Result};
+
+/// Get the TLS slot as an `AtomicPtr`, resolving the TLS address only once.
+fn tls_slot() -> &'static AtomicPtr<sys::custom_labels_tl_record_t> {
+    unsafe {
+        let ptr = sys::custom_labels_get_tls_address()
+            as *mut *mut sys::custom_labels_tl_record_t;
+        AtomicPtr::from_ptr(ptr)
+    }
+}
 
 /// Initialize custom labels with the maximum record size.
 /// Must be called once before using any other OTel TLS functions.
@@ -125,8 +135,11 @@ pub fn set_current_record<F>(ctx_key_id: Option<&[u8; 8]>, f: F)
 where
     F: FnOnce(&mut RecordBuilder),
 {
+    let slot = tls_slot();
+
     // 1. Detach current record (TL becomes null during update; no stale reads!)
-    unsafe { sys::custom_labels_set_current_record(std::ptr::null_mut()) };
+    slot.store(std::ptr::null_mut(), Ordering::Relaxed);
+    compiler_fence(Ordering::SeqCst);
 
     // 2. Build the new record via the lambda
     let mut builder = RecordBuilder::new();
@@ -135,7 +148,8 @@ where
 
     // 3. Attach the new record
     let new_ptr = new_record.into_raw();
-    unsafe { sys::custom_labels_set_current_record(new_ptr) };
+    compiler_fence(Ordering::SeqCst);
+    slot.store(new_ptr, Ordering::Relaxed);
     info!("set_current_record: TL = {:p}", new_ptr);
 }
 
@@ -145,14 +159,16 @@ where
 /// The `ctx_key_id` parameter is reserved for future caching (e.g., span_id).
 #[allow(unused_variables)]
 pub fn attach_record(ctx_key_id: Option<&[u8; 8]>, record: Record) -> Option<Record> {
-    let old_ptr = unsafe { sys::custom_labels_set_current_record(record.into_raw()) };
+    let slot = tls_slot();
+    let old_ptr = slot.swap(record.into_raw(), Ordering::Relaxed);
     unsafe { Record::from_raw(old_ptr) }
 }
 
 /// Clear the current record from the thread.
 /// Returns the previous record, if any.
 pub fn clear_current_record() -> Option<Record> {
-    let old_ptr = unsafe { sys::custom_labels_set_current_record(std::ptr::null_mut()) };
+    let slot = tls_slot();
+    let old_ptr = slot.swap(std::ptr::null_mut(), Ordering::Relaxed);
     unsafe { Record::from_raw(old_ptr) }
 }
 
@@ -178,9 +194,10 @@ pub fn update_current_record<F>(f: F)
 where
     F: FnOnce(&mut RecordUpdater),
 {
-    use std::sync::atomic::{compiler_fence, AtomicU8, Ordering};
+    use std::sync::atomic::AtomicU8;
 
-    let current = unsafe { sys::custom_labels_get_current_record() };
+    let slot = tls_slot();
+    let current = slot.load(Ordering::Relaxed);
 
     if current.is_null() {
         // No record attached — fall back to allocate + attach
@@ -188,8 +205,8 @@ where
         let mut updater = RecordUpdater { raw: builder.raw };
         f(&mut updater);
         let record = builder.build();
-        let new_ptr = record.into_raw();
-        unsafe { sys::custom_labels_set_current_record(new_ptr) };
+        compiler_fence(Ordering::SeqCst);
+        slot.store(record.into_raw(), Ordering::Relaxed);
         return;
     }
 

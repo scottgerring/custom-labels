@@ -39,7 +39,11 @@ typedef struct {
 } custom_labels_tl_record_t;
 
 __attribute__((visibility("default")))
+#ifdef __bindgen
 extern __thread custom_labels_tl_record_t *otel_thread_ctx_v1;
+#else
+extern __thread _Atomic(custom_labels_tl_record_t *) otel_thread_ctx_v1;
+#endif
 
 // Initialize custom labels with the maximum record size.
 // Must be called once before using any other functions.

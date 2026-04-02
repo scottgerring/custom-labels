@@ -5,15 +5,15 @@
 
 // Compiler-only fence: prevents the compiler from reordering stores/loads
 // across this point. No hardware barrier is needed because readers are
-// expected to be signal handlers on the same CPU - (the thread is stopped while reading).
-#define BARRIER asm volatile("": : :"memory")
+// expected to be signal handlers on the same CPU (the thread is stopped while reading).
+#define BARRIER atomic_signal_fence(memory_order_seq_cst)
 
 // Process-global max record size, set via setup()
 static uint64_t g_max_record_size = 0;
 
 __attribute__((retain))
 __attribute__((visibility("default")))
-__thread custom_labels_tl_record_t *otel_thread_ctx_v1 = NULL;
+__thread _Atomic(custom_labels_tl_record_t *) otel_thread_ctx_v1 = NULL;
 
 void custom_labels_setup(uint64_t max_record_size) {
     g_max_record_size = max_record_size;
@@ -32,8 +32,7 @@ custom_labels_tl_record_t *custom_labels_record_new(void) {
     if (!record) {
         return NULL;
     }
-    atomic_store_explicit(&record->valid, 0, memory_order_relaxed);
-    record->attrs_data_size = 0;
+    record->valid = 1;
     return record;
 }
 
