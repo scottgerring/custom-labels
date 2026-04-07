@@ -20,15 +20,23 @@ static HTTP_ROUTES: &[&str] = &[
 ];
 
 fn rand_trace_id(rng: &mut impl Rng) -> [u8; 16] {
-    let mut id = [0u8; 16];
-    rng.fill(&mut id);
-    id
+    loop {
+        let mut id = [0u8; 16];
+        rng.fill(&mut id);
+        if id != [0u8; 16] {
+            return id;
+        }
+    }
 }
 
 fn rand_span_id(rng: &mut impl Rng) -> [u8; 8] {
-    let mut id = [0u8; 8];
-    rng.fill(&mut id);
-    id
+    loop {
+        let mut id = [0u8; 8];
+        rng.fill(&mut id);
+        if id != [0u8; 8] {
+            return id;
+        }
+    }
 }
 
 fn rand_user_id(rng: &mut impl Rng) -> String {

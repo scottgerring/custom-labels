@@ -201,7 +201,7 @@ where
 
     if current.is_null() {
         // No record attached — fall back to allocate + attach
-        let mut builder = RecordBuilder::new();
+        let builder = RecordBuilder::new();
         let mut updater = RecordUpdater { raw: builder.raw };
         f(&mut updater);
         let record = builder.build();

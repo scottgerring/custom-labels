@@ -4,9 +4,6 @@ use thiserror::Error;
 /// Maximum size for keys and values
 pub const KEY_VALUE_LIMIT: usize = 4096;
 
-/// Maximum varint value (14 bits)
-pub const UINT14_MAX: u16 = 16383;
-
 /// Current version of the process context format
 pub const PROCESS_CTX_VERSION: u32 = 2;
 

@@ -1,6 +1,12 @@
-## Warning
+> [!NOTE]
+> This is a temporary fork of [polarsignals/custom-labels](https://github.com/polarsignals/custom-labels)
+> updated to match [OTEP 4947: Thread Context](https://github.com/open-telemetry/opentelemetry-specification/pull/4947).
+> It is experimental and will be incorporated back upstream once the OTEP is accepted.
+> Thanks to [Polar Signals](https://polarsignals.com) for providing a great foundation to build on --
+> the original work is (C) Polar Signals.
 
-This library is experimental; both the API and ABI are subject to change as the underlying OTEPs are finalised.
+> [!WARNING]
+> This library is experimental; both the API and ABI are subject to change as the underlying OTEPs are finalised.
 
 ## Description
 

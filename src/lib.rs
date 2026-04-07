@@ -27,11 +27,6 @@ impl KeyHandle {
         KeyHandle(index)
     }
 
-    /// Create a new KeyHandle from a known index (alias for new).
-    pub const fn from_index(index: u8) -> Self {
-        KeyHandle(index)
-    }
-
     /// Get the index of this key handle.
     pub const fn index(&self) -> u8 {
         self.0
@@ -53,8 +48,11 @@ pub mod build {
     /// Emit the instructions required for an
     /// executable to expose custom labels data.
     pub fn emit_build_instructions() {
-        let dlist_path = format!("{}/dlist", std::env::var("OUT_DIR").unwrap());
-        std::fs::write(&dlist_path, include_str!("../dlist")).unwrap();
-        println!("cargo:rustc-link-arg=-Wl,--dynamic-list={}", dlist_path);
+        #[cfg(target_os = "linux")]
+        {
+            let dlist_path = format!("{}/dlist", std::env::var("OUT_DIR").unwrap());
+            std::fs::write(&dlist_path, include_str!("../dlist")).unwrap();
+            println!("cargo:rustc-link-arg=-Wl,--dynamic-list={}", dlist_path);
+        }
     }
 }

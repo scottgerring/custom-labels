@@ -9,8 +9,6 @@ fn main() {
 
     println!("cargo:rustc-link-lib=static=customlabels");
 
-    // dynamic-list is Linux-only
-    #[cfg(target_os = "linux")]
     println!("cargo:rustc-link-arg=-Wl,--dynamic-list=./dlist");
 
     // Generate bindings using bindgen
