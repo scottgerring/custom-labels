@@ -13,7 +13,7 @@
 This library exposes request-scoped context - trace ID, span ID, and configurable custom attributes - to external readers such as the [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler), following [OTEP 4947: Thread Context](https://github.com/open-telemetry/opentelemetry-specification/pull/4947). Context is published via an ELF TLSDESC thread-local variable that external readers can discover and read.
 It focuses only on the _writing_ side of the equation; for read, an implementation will be made available in the [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler).
 
-A minimal [OTEP 4719: Process Context](https://github.com/open-telemetry/opentelemetry-specification/pull/4719) implementation is included to publish the static metadata (key table, schema version) that thread-local records reference.
+A minimal [OTEP 4719: Process Context](https://github.com/open-telemetry/opentelemetry-specification/blob/main/oteps/profiles/4719-process-ctx.md) implementation is included to publish the static metadata (key table, schema version) that thread-local records reference.
 
 The core goal of the design is that the map for a thread may be
 validly read from that thread whenever user code is stopped; for
@@ -27,12 +27,11 @@ active at the time. Additionally, custom attributes can be attached - for exampl
 a `customer_id` label - making profiles useful even when the tracer didn't happen
 to sample the request that the profiler captured.
 
-The library exposes a C API (in `customlabels.h`) and a Rust API
-for both thread context and process context.
+The library exposes a Rust API for both thread context and process context.
 
 ## Supported Configurations
 
-**Language**: any language that can link against C code.
+**Language**: Rust (with a minimal internal C shim for TLSDESC TLS access).
 
 **Platform**: Linux on x86-64 or aarch64 (64-bit ARM).
 
@@ -43,39 +42,15 @@ Depend on the `otel-thread-ctx` crate as both a standard dependency and a build 
 Then add the following line to your executable's `build.rs`:
 
 ``` rust
-#[cfg(not(target_os="macos"))]
 otel_thread_ctx::build::emit_build_instructions();
 ```
-
-## Using from C or C++ (shared library)
-
-For a release build:
-
-``` bash
-CFLAGS="-O2" make
-```
-
-For a debug build:
-
-``` bash
-CFLAGS="-O0 -g" make
-```
-
-Either will produce a library called `libcustomlabels.so` in the repository root,
-which should be linked against during your build process.
-
-## Using from C or C++ (main executable)
-
-Ensure that `customlabels.c` is linked into your executable and that `customlabels.h` is available
-in the include path for any source file from which you want to use custom labels. The details of
-this will depend on your build system.
 
 ## ABI
 
 For profiler authors, the thread context ABI is described in
 [OTEP 4947](https://github.com/open-telemetry/opentelemetry-specification/pull/4947)
 and the process context format is described in
-[OTEP 4719](https://github.com/open-telemetry/opentelemetry-specification/pull/4719).
+[OTEP 4719](https://github.com/open-telemetry/opentelemetry-specification/blob/main/oteps/profiles/4719-process-ctx.md).
 
 ## Acknowledgements
 

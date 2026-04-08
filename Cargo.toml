@@ -9,7 +9,6 @@ repository = "https://github.com/open-telemetry/sig-profiling"
 readme = "README.md"
 
 [build-dependencies]
-bindgen = { version = "0.72", default-features = false, features = ["runtime"] }
 cc = "1.0"
 prost-build = "0.13"
 protoc-bin-vendored = "3.0"
